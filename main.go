@@ -9,7 +9,6 @@ import (
 func main() {
 	set := "acdegilmnoprstuw"
 
-	// fmt.Printf("To Hash: %d\n", toHash("leepadg", 7, 37, set))
 	result := fromHash(toHash("gato", 7, 37, set), 4, 7, 37, set)
 	// result := fromHash(910897038977002, 9, 7, 37, set)
 	fmt.Printf("From Hash: %s\n", result)
@@ -23,6 +22,10 @@ func toHash(source string, seed int, multi int, set string) int {
 	return hash
 }
 
+/**
+ * TODO:
+ *  - This approach takes quite a lot of time when the outputLen is greater than 5.
+ */
 func fromHash(hash int, outputLen int, seed int, multi int, set string) string {
 	possibleCombinations := math.Pow(float64(len(set)), float64(outputLen))
 	fmt.Printf("Source: %d\tPossible Combinations: %d\n", hash, int(possibleCombinations))
@@ -70,7 +73,12 @@ func generateGuess(attempt int, outputLen int, set string) string {
 		rawGuess = allocatePoint(rawGuess, len(set), 0)
 	}
 
-	return convertRaw(rawGuess, set)
+	guess := ""
+	for i := 0; i < len(rawGuess); i++ {
+		guess += string(set[rawGuess[i]])
+	}
+
+	return guess
 }
 
 // NOTE: Recursive; will increment the character number in the guess sequence from left to right
@@ -88,13 +96,4 @@ func allocatePoint(rawGuess []int, maxAmount int, offset int) []int {
 	}
 
 	return rawGuess
-}
-
-func convertRaw(rawGuess []int, set string) string {
-	guess := ""
-	for i := 0; i < len(rawGuess); i++ {
-		guess += string(set[rawGuess[i]])
-	}
-
-	return guess
 }
