@@ -4,14 +4,19 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 )
 
+// Goal: Unhash a 9 character string from 910897038977002
 func main() {
 	set := "acdegilmnoprstuw"
 
-	result := fromHash(toHash("gato", 7, 37, set), 4, 7, 37, set)
-	// result := fromHash(910897038977002, 9, 7, 37, set)
-	fmt.Printf("From Hash: %s\n", result)
+	runs := []string{"w", "ww", "www", "wwww", "wwwww", "wwwwww"}
+
+	for i, target := range runs {
+		fmt.Printf("Run: %d\tTarget: %s\n", i + 1, target)
+		fmt.Printf("From Hash: %s\n\n", fromHash(toHash(target, 7, 37, set), len(target), 7, 37, set))
+	}
 }
 
 func toHash(source string, seed int, multi int, set string) int {
@@ -22,13 +27,10 @@ func toHash(source string, seed int, multi int, set string) int {
 	return hash
 }
 
-/**
- * TODO:
- *  - This approach takes quite a lot of time when the outputLen is greater than 5.
- */
 func fromHash(hash int, outputLen int, seed int, multi int, set string) string {
+	start := time.Now()
 	possibleCombinations := math.Pow(float64(len(set)), float64(outputLen))
-	fmt.Printf("Source: %d\tPossible Combinations: %d\n", hash, int(possibleCombinations))
+	fmt.Printf("Source: %d\nPossible Combinations: %d\nStarting at: %s\n", hash, int(possibleCombinations), start.Format("Mon Jan 2 15:04:05 -0700 MST 2006"))
 
 	foundChan := make(chan string)
 	stopChan := make(chan struct{})
@@ -42,6 +44,7 @@ func fromHash(hash int, outputLen int, seed int, multi int, set string) string {
 		}
 	}
 
+	fmt.Printf("Done in: %s\n", time.Since(start))
 	return <-foundChan
 }
 
