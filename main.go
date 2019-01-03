@@ -2,20 +2,19 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"strings"
-	"time"
 )
 
-// Goal: Unhash a 9 character string from 910897038977002
 func main() {
 	set := "acdegilmnoprstuw"
+	seed := 7
+	multi := 37 // NOTE: Needs to be at least the length of the acceptable characters
 
-	runs := []string{"w", "ww", "www", "wwww", "wwwww", "wwwwww"}
+	runs := []string{"a", "deg", "www", "padw", "lmnop", "awcudt", "leepadg", "asparagus"}
 
 	for i, target := range runs {
-		fmt.Printf("Run: %d\tTarget: %s\n", i + 1, target)
-		fmt.Printf("From Hash: %s\n\n", fromHash(toHash(target, 7, 37, set), len(target), 7, 37, set))
+		fmt.Printf("Run: %d\tTarget: %s\n", i+1, target)
+		fmt.Printf("From Hash: %s\n\n", fromHash(toHash(target, seed, multi, set), len(target), multi, set))
 	}
 }
 
@@ -27,76 +26,42 @@ func toHash(source string, seed int, multi int, set string) int {
 	return hash
 }
 
-func fromHash(hash int, outputLen int, seed int, multi int, set string) string {
-	start := time.Now()
-	possibleCombinations := math.Pow(float64(len(set)), float64(outputLen))
-	fmt.Printf("Source: %d\nPossible Combinations: %d\nStarting at: %s\n", hash, int(possibleCombinations), start.Format("Mon Jan 2 15:04:05 -0700 MST 2006"))
+// TODO: This requires the multiplier, but what if we didn't know it?
+func fromHash(hash int, outputLen int, multi int, set string) string {
+	charIndexes, _ := findCharIndexes(hash, len(set), multi, make([]int, outputLen), outputLen-1)
 
-	foundChan := make(chan string)
-	stopChan := make(chan struct{})
-
-	for i := 0; i < int(possibleCombinations); i++ {
-		select {
-		case <-stopChan:
-			break
-		default:
-			go asyncGuess(foundChan, stopChan, hash, i, seed, multi, outputLen, set)
-		}
+	output := ""
+	for i := 0; i < len(charIndexes); i++ {
+		output += string(set[charIndexes[i]])
 	}
 
-	fmt.Printf("Done in: %s\n", time.Since(start))
-	return <-foundChan
+	return output
 }
 
-func asyncGuess(foundChan chan string, stopChan chan struct{}, hash int, attempt int, seed int, multi int, outputLen int, set string) {
-	for {
-		select {
-		case <-stopChan:
-			return
-		default:
-			guess := generateGuess(attempt, outputLen, set)
-			guessHash := toHash(guess, seed, multi, set)
+func findCharIndexes(hash int, setLength int, multi int, charIndexes []int, currentIndex int) ([]int, bool) {
+	if currentIndex < 0 {
+		return charIndexes, true
+	}
 
-			if guessHash != hash {
-				return
+	for i := 0; i < setLength; i++ {
+		if (hash-i)%multi == 0 {
+			charIndexes[currentIndex] = i
+
+			if currentIndex == 0 {
+				return charIndexes, true
 			}
 
-			close(stopChan)
+			nextHash := (hash - i) / multi
+			nextIndex := currentIndex - 1
+			withNext, foundNext := findCharIndexes(nextHash, setLength, multi, charIndexes, nextIndex)
 
-			foundChan <- guess
-			close(foundChan)
+			if !foundNext {
+				continue
+			}
+
+			return withNext, true
 		}
 	}
-}
 
-func generateGuess(attempt int, outputLen int, set string) string {
-	rawGuess := make([]int, outputLen)
-
-	for i := attempt; i > 0; i-- {
-		rawGuess = allocatePoint(rawGuess, len(set), 0)
-	}
-
-	guess := ""
-	for i := 0; i < len(rawGuess); i++ {
-		guess += string(set[rawGuess[i]])
-	}
-
-	return guess
-}
-
-// NOTE: Recursive; will increment the character number in the guess sequence from left to right
-func allocatePoint(rawGuess []int, maxAmount int, offset int) []int {
-	rawGuess[offset]++
-	if rawGuess[offset] >= maxAmount {
-		rawGuess[offset] = 0
-		newOffset := offset + 1
-
-		if newOffset > len(rawGuess) {
-			return rawGuess
-		}
-
-		rawGuess = allocatePoint(rawGuess, maxAmount, newOffset)
-	}
-
-	return rawGuess
+	return charIndexes, false
 }
